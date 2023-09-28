@@ -3,6 +3,7 @@ package crypto
 import (
 	"crypto/cipher"
 	"crypto/rand"
+	"fmt"
 	"io"
 
 	"github.com/v2fly/v2ray-core/v5/common"
@@ -306,6 +307,7 @@ func (w *AuthenticationWriter) writeStream(mb buf.MultiBuffer) error {
 		}
 	}
 
+	fmt.Println("Write 2", mb2Write.Len())
 	return w.writer.WriteMultiBuffer(mb2Write)
 }
 
@@ -340,6 +342,7 @@ func (w *AuthenticationWriter) writePacket(mb buf.MultiBuffer) error {
 
 // WriteMultiBuffer implements buf.Writer.
 func (w *AuthenticationWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	fmt.Println("WriteMultiBuffer ------ :", mb.Len())
 	if mb.IsEmpty() {
 		eb, err := w.seal([]byte{})
 		common.Must(err)
@@ -347,8 +350,10 @@ func (w *AuthenticationWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	}
 
 	if w.transferType == protocol.TransferTypeStream {
+		fmt.Println("WriteMultiBuffer writeStream ------ :", mb.Len())
 		return w.writeStream(mb)
 	}
 
+	fmt.Println("WriteMultiBuffer writePacket ------ :", mb.Len())
 	return w.writePacket(mb)
 }

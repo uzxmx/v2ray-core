@@ -11,6 +11,8 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
 	github.com/gorilla/websocket v1.5.0
+	github.com/hashicorp/golang-lru v0.5.1
+	github.com/hupe1980/golog v0.0.2
 	github.com/jhump/protoreflect v1.13.0
 	github.com/lucas-clemente/quic-go v0.29.2
 	github.com/marten-seemann/qtls-go1-18 v0.1.3

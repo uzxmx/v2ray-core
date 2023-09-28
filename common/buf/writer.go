@@ -1,6 +1,7 @@
 package buf
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -19,6 +20,8 @@ type BufferToBytesWriter struct {
 // WriteMultiBuffer implements Writer. This method takes ownership of the given buffer.
 func (w *BufferToBytesWriter) WriteMultiBuffer(mb MultiBuffer) error {
 	defer ReleaseMulti(mb)
+
+	fmt.Println("WriteMultiBuffer: ----", mb.Len())
 
 	size := mb.Len()
 	if size == 0 {

@@ -4,6 +4,8 @@ package dispatcher
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +27,61 @@ import (
 )
 
 var errSniffingTimeout = newError("timeout on sniffing")
+
+type dumpReader struct {
+	reader      *pipe.Reader
+	destination net.Destination
+	path        string
+}
+
+func (r *dumpReader) getFile() *os.File {
+	if len(r.path) == 0 {
+		r.path = "data/req_" + fmt.Sprintf("%d", time.Now().Unix())
+		newError("To: ", r.destination.String(), ", path: ", r.path).WriteToLog()
+	}
+
+	file, _ := os.OpenFile(r.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	return file
+}
+
+func (r *dumpReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
+	buffer, err := r.reader.ReadMultiBuffer()
+	if err == nil && buffer.Len() > 0 {
+		slice := make([]byte, buffer.Len())
+		buffer.Copy(slice)
+		file := r.getFile()
+		file.Write(slice)
+		file.Close()
+	}
+	return buffer, err
+}
+
+type dumpWriter struct {
+	writer      *pipe.Writer
+	destination net.Destination
+	path        string
+}
+
+func (r *dumpWriter) getFile() *os.File {
+	if len(r.path) == 0 {
+		r.path = "data/resp_" + fmt.Sprintf("%d", time.Now().Unix())
+		newError("From: ", r.destination.String(), ", path: ", r.path).WriteToLog()
+	}
+
+	file, _ := os.OpenFile(r.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	return file
+}
+
+func (w *dumpWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
+	if mb.Len() > 0 {
+		slice := make([]byte, mb.Len())
+		mb.Copy(slice)
+		file := w.getFile()
+		file.Write(slice)
+		file.Close()
+	}
+	return w.writer.WriteMultiBuffer(mb)
+}
 
 type cachedReader struct {
 	sync.Mutex
@@ -212,7 +269,19 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 	}
 	sniffingRequest := content.SniffingRequest
 	if !sniffingRequest.Enabled {
-		go d.routedDispatch(ctx, outbound, destination)
+		go func() {
+			// dReader := &dumpReader{
+			// 	reader:      outbound.Reader.(*pipe.Reader),
+			// 	destination: destination,
+			// }
+			// dWriter := &dumpWriter{
+			// 	writer:      outbound.Writer.(*pipe.Writer),
+			// 	destination: destination,
+			// }
+			// outbound.Reader = dReader
+			// outbound.Writer = dWriter
+			d.routedDispatch(ctx, outbound, destination)
+		}()
 	} else {
 		go func() {
 			cReader := &cachedReader{
